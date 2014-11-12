@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# make vhost
+
+SCRIPTNAME=$(basename $0)
+
+PATHENABLED="/etc/apache2/sites-enabled"
+
+echo "List of all enabled Virtual Hosts $SCRIPTNAME"
+echo "---------------------------------------------"
+
+show_enabled () {
+
+    ls -1 $PATHENABLED
+}
+
+show_enabled
+    
