@@ -5,14 +5,71 @@
 SCRIPTNAME=$(basename $0)
 
 PATHENABLED="/etc/apache2/sites-enabled"
+PATHAVAILABLE="/etc/apache2/sites-available"
 
-echo "List of all enabled Virtual Hosts $SCRIPTNAME"
-echo "---------------------------------------------"
 
 show_enabled () {
 
+    echo "List of all enabled Virtual Hosts $SCRIPTNAME"
+    echo "---------------------------------------------"
     ls -1 $PATHENABLED
 }
-
-show_enabled
     
+add_vhost () {
+
+    cat <<- _EOF_ > $2
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    ServerName $2
+
+
+    DocumentRoot $3
+    <Directory />
+        Options Indexes FollowSymLinks
+        AllowOverride All
+    </Directory>
+
+    ErrorLog \${APACHE_LOG_DIR}/error.log
+
+    # Possible values include: debug, info, notice, warn, error, crit,
+    # alert, emerg.
+    LogLevel warn
+
+    CustomLog \${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+_EOF_
+    return
+}
+
+usage () {
+    echo "$SCRIPTNAME show"
+    echo "$SCRIPTNAME create <server name> <document root>"
+    echo "$SCRIPTNAME remove <server name>"
+}
+
+if [[ -d $PATHAVAILABLE ]]; then
+    echo "path avail exists"
+fi
+
+
+case $1 in
+    show)   show_enabled
+            exit
+            ;;
+    create) echo "create vhost"
+        if [ -z $2 -a -z $3 ]; then
+            echo "create need server name and document root"
+            exit 1
+        else
+            add_vhost "$@"
+        fi
+        ;;
+    remove) echo "remove vhost"
+        exit
+        ;;
+    *) usage
+        exit
+        ;;
+esac
+
+
