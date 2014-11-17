@@ -2,11 +2,17 @@
 
 # make vhost
 
+red='\e[0;31m'
+
 SCRIPTNAME=$(basename $0)
 
 PATHENABLED="/etc/apache2/sites-enabled"
 PATHAVAILABLE="/etc/apache2/sites-available"
 
+error_exit () {
+    echo -e "${red}ERROR: $1" 1>&2
+    exit 1
+}
 
 show_enabled () {
 
@@ -16,8 +22,30 @@ show_enabled () {
 }
     
 add_vhost () {
+    # echo "$PATHAVAILABLE/$2"
+    FILEPATH=
+    FILENAME=
+    
 
-    cat <<- _EOF_ > $2
+    if [[ ! -z $4 ]]; then 
+        FILENAME=$4 
+        FILEPATH="$PATHAVAILABLE/$4"
+    else
+        FILENAME=$2
+        FILEPATH="$PATHAVAILABLE/$2"
+    fi
+
+    # Check if file exists
+    if [[ -f $FILEPATH ]]; then
+        error_exit "File $FILEPATH exists. Try a different name"
+    fi
+
+    echo -e "--Creating $FILEPATH with"
+    echo -e "  ServerName: $2"
+    echo -e "  DocumentRoot $3"
+
+
+    cat <<- _EOF_ > $FILEPATH
 <VirtualHost *:80>
     ServerAdmin webmaster@localhost
     ServerName $2
@@ -38,6 +66,14 @@ add_vhost () {
     CustomLog \${APACHE_LOG_DIR}/access.log combined
 </VirtualHost>
 _EOF_
+    echo "FILE: $FILEPATH has been created"
+
+    a2ensite $FILENAME
+    echo "-----------------------------------------"
+    service apache2 reload
+    echo "-----------------------------------------"
+    echo "VirtualHost created"
+
     return
 }
 
@@ -47,8 +83,8 @@ usage () {
     echo "$SCRIPTNAME remove <server name>"
 }
 
-if [[ -d $PATHAVAILABLE ]]; then
-    echo "path avail exists"
+if [[ ! -d $PATHAVAILABLE ]]; then
+    error_exit "\*$PATHAVAILABLE does not exists"
 fi
 
 
@@ -56,10 +92,9 @@ case $1 in
     show)   show_enabled
             exit
             ;;
-    create) echo "create vhost"
-        if [ -z $2 -a -z $3 ]; then
-            echo "create need server name and document root"
-            exit 1
+    create) echo -e "*Creating vhost...\n"
+        if [ -z $2 ] || [ -z $3 ]; then
+            error_exit "server name and/or document root missing"
         else
             add_vhost "$@"
         fi
@@ -71,5 +106,4 @@ case $1 in
         exit
         ;;
 esac
-
 
