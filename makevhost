@@ -8,6 +8,7 @@ SCRIPTNAME=$(basename $0)
 
 PATHENABLED="/etc/apache2/sites-enabled"
 PATHAVAILABLE="/etc/apache2/sites-available"
+SERVERADMIN="webmaster@localhost"
 
 error_exit () {
     echo -e "${red}ERROR: $1" 1>&2
@@ -47,9 +48,8 @@ add_vhost () {
 
     cat <<- _EOF_ > $FILEPATH
 <VirtualHost *:80>
-    ServerAdmin webmaster@localhost
+    ServerAdmin $SERVERADMIN
     ServerName $2
-
 
     DocumentRoot $3
     <Directory />
@@ -73,20 +73,39 @@ _EOF_
     service apache2 reload
     echo "-----------------------------------------"
     echo "VirtualHost created"
+    echo "-----------------------------------------"
+    echo "Adding server name to /etc/hosts"
+    echo "127.0.0.1   $2" >> /etc/hosts
+
 
     return
 }
 
-usage () {
-    echo "$SCRIPTNAME show"
-    echo "$SCRIPTNAME create <server name> <document root>"
-    echo "$SCRIPTNAME remove <server name>"
+remove_vhost () {
+    echo "remove vhost"
+
+
 }
+
+usage () {
+    echo "
+Usage:
+  command [arguments]
+
+Available commands:
+  show
+  create: filename defaults to servername.
+    arguments:
+      servername documentroot [ filename ]
+  remove *not implemented
+    "
+}
+
+# Check for root access
 
 if [[ ! -d $PATHAVAILABLE ]]; then
     error_exit "\*$PATHAVAILABLE does not exists"
 fi
-
 
 case $1 in
     show)   show_enabled
@@ -96,6 +115,9 @@ case $1 in
         if [ -z $2 ] || [ -z $3 ]; then
             error_exit "server name and/or document root missing"
         else
+            if [ $(id -u) -ne 0 ]; then
+                error_exit "Need root access.  Use sudo."
+            fi
             add_vhost "$@"
         fi
         ;;
