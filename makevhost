@@ -82,22 +82,45 @@ _EOF_
 }
 
 remove_vhost () {
-    echo "remove vhost"
+    echo "disabling $1"
 
+    a2dissite $1
+    if [ "$?" -ne 0 ]
+    then
+        error_exit "Cannot disable $1"
+    fi
 
+    if [ ! -f "$PATHAVAILABLE/$1" ]
+    then
+        error_exit "$1 does not exist"
+    fi
+
+    echo "removing $1"
+    rm "$PATHAVAILABLE/$1"
+
+    if [ "$?" -ne 0 ]
+    then
+        error_exit "Disabled $? but could not remove $?"
+    fi
+
+    service apache2 reload
+    echo "Disabled and removed $1"
+    echo "DONE"
 }
 
 usage () {
     echo "
 Usage:
-  command [arguments]
+  makevhost [ commands ]
 
 Available commands:
-  show
+  show: show enabled virtual hosts
   create: filename defaults to servername.
     arguments:
       servername documentroot [ filename ]
-  remove *not implemented
+  remove: removes existing virtual hosts
+    arguments:
+      filename
     "
 }
 
@@ -121,7 +144,12 @@ case $1 in
             add_vhost "$@"
         fi
         ;;
-    remove) echo "remove vhost"
+    remove) 
+        if [[ -z "$2" ]]
+        then
+            error_exit "Need to provide vhost name"
+        fi
+        remove_vhost "$2"
         exit
         ;;
     *) usage
